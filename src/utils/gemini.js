@@ -4,6 +4,8 @@ const { spawn } = require('child_process');
 const { saveDebugAudio } = require('../audioUtils');
 const { getSystemPrompt } = require('./prompts');
 
+const GEMINI_LIVE_MODEL = 'gemini-live-2.5-flash-preview';
+
 // Conversation tracking variables
 let currentSessionId = null;
 let currentTranscription = '';
@@ -229,7 +231,7 @@ async function initializeGeminiSession(apiKey, customPrompt = '', profile = 'int
 
     try {
         const session = await client.live.connect({
-            model: 'gemini-live-2.5-flash-preview',
+            model: GEMINI_LIVE_MODEL,
             callbacks: {
                 onopen: function () {
                     sendToRenderer('update-status', 'Live session connected');
