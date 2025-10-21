@@ -12,7 +12,11 @@ A real-time AI assistant that provides contextual help during video calls, inter
 
 ## Features
 
-- **Live AI Assistance**: Real-time help powered by Google Gemini 2.0 Flash Live
+- **Multi-Model AI Support**: Choose from multiple AI providers:
+  - **Google Gemini**: Real-time multimodal streaming with audio support
+  - **OpenRouter**: Access to Claude, GPT-4, Llama, and 20+ other models
+  - **Anthropic Claude**: Claude 3.5 Sonnet and other Claude models
+  - **OpenAI**: GPT-4o, GPT-4 Turbo, and GPT-3.5
 - **Screen & Audio Capture**: Analyzes what you see and hear for contextual responses
 - **Multiple Profiles**: Interview, Sales Call, Business Meeting, Presentation, Negotiation
 - **Transparent Overlay**: Always-on-top window that can be positioned anywhere
@@ -21,17 +25,22 @@ A real-time AI assistant that provides contextual help during video calls, inter
 
 ## Setup
 
-1. **Get a Gemini API Key**: Visit [Google AI Studio](https://aistudio.google.com/apikey)
+1. **Get an API Key** from your preferred provider:
+   - **Google Gemini**: [Google AI Studio](https://aistudio.google.com/apikey) (Recommended for real-time audio)
+   - **OpenRouter**: [OpenRouter Keys](https://openrouter.ai/keys)
+   - **Anthropic Claude**: [Anthropic Console](https://console.anthropic.com/settings/keys)
+   - **OpenAI**: [OpenAI Platform](https://platform.openai.com/api-keys)
 2. **Install Dependencies**: `npm install`
 3. **Run the App**: `npm start`
 
 ## Usage
 
-1. Enter your Gemini API key in the main window
-2. Choose your profile and language in settings
-3. Click "Start Session" to begin
-4. Position the window using keyboard shortcuts
-5. The AI will provide real-time assistance based on your screen and what interview asks
+1. Select your AI provider and model from the dropdowns
+2. Enter your API key for the selected provider
+3. Choose your profile and language in settings
+4. Click "Start Session" to begin (Cmd/Ctrl + Enter)
+5. Position the window using keyboard shortcuts
+6. The AI will provide real-time assistance based on your screen and audio input
 
 ## Keyboard Shortcuts
 
@@ -49,6 +58,17 @@ A real-time AI assistant that provides contextual help during video calls, inter
 ## Requirements
 
 - Electron-compatible OS (macOS, Windows, Linux)
-- Gemini API key
+- API key from at least one supported provider (Gemini, OpenRouter, Claude, or OpenAI)
 - Screen recording permissions
 - Microphone/audio permissions
+
+## Provider Capabilities
+
+| Provider | Text | Image | Audio | Streaming | Notes |
+|----------|------|-------|-------|-----------|-------|
+| **Google Gemini** | ✅ | ✅ | ✅ | ✅ | Best for real-time audio support |
+| **OpenRouter** | ✅ | ✅* | ❌ | ✅ | Access to 20+ models (*vision depends on model) |
+| **Anthropic Claude** | ✅ | ✅ | ❌ | ✅ | Excellent for complex reasoning |
+| **OpenAI** | ✅ | ✅* | ❌ | ✅ | GPT-4o recommended (*vision depends on model) |
+
+**Note**: Audio input is only supported by Google Gemini. Other providers support text and image (screen capture) input.

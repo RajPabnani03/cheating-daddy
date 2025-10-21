@@ -150,9 +150,32 @@ function arrayBufferToBase64(buffer) {
 }
 
 async function initializeGemini(profile = 'interview', language = 'en-US') {
-    const apiKey = localStorage.getItem('apiKey')?.trim();
+    // Get selected provider and model
+    const selectedProvider = localStorage.getItem('selectedProvider') || 'gemini';
+    const apiKeyStorageKey = `${selectedProvider}_apiKey`;
+    const modelStorageKey = `${selectedProvider}_model`;
+
+    // Get API key from provider-specific storage or fallback to legacy 'apiKey' for Gemini
+    let apiKey = localStorage.getItem(apiKeyStorageKey)?.trim();
+    if (!apiKey && selectedProvider === 'gemini') {
+        apiKey = localStorage.getItem('apiKey')?.trim();
+    }
+
     if (apiKey) {
-        const success = await ipcRenderer.invoke('initialize-gemini', apiKey, localStorage.getItem('customPrompt') || '', profile, language);
+        const selectedModel = localStorage.getItem(modelStorageKey);
+        const customPrompt = localStorage.getItem('customPrompt') || '';
+
+        // Use new provider-based initialization
+        const success = await ipcRenderer.invoke(
+            'initialize-ai',
+            apiKey,
+            customPrompt,
+            profile,
+            language,
+            selectedProvider,
+            selectedModel
+        );
+
         if (success) {
             cheddar.setStatus('Live');
         } else {

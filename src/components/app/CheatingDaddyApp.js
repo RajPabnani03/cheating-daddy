@@ -265,8 +265,16 @@ export class CheatingDaddyApp extends LitElement {
 
     // Main view event handlers
     async handleStart() {
-        // check if api key is empty do nothing
-        const apiKey = localStorage.getItem('apiKey')?.trim();
+        // Check if API key is empty - check both provider-specific and legacy keys
+        const selectedProvider = localStorage.getItem('selectedProvider') || 'gemini';
+        const apiKeyStorageKey = `${selectedProvider}_apiKey`;
+        let apiKey = localStorage.getItem(apiKeyStorageKey)?.trim();
+
+        // Backward compatibility: check legacy apiKey for Gemini
+        if (!apiKey && selectedProvider === 'gemini') {
+            apiKey = localStorage.getItem('apiKey')?.trim();
+        }
+
         if (!apiKey || apiKey === '') {
             // Trigger the red blink animation on the API key input
             const mainView = this.shadowRoot.querySelector('main-view');
@@ -288,7 +296,18 @@ export class CheatingDaddyApp extends LitElement {
     async handleAPIKeyHelp() {
         if (window.require) {
             const { ipcRenderer } = window.require('electron');
-            await ipcRenderer.invoke('open-external', 'https://cheatingdaddy.com/help/api-key');
+            const selectedProvider = localStorage.getItem('selectedProvider') || 'gemini';
+
+            // Provider-specific API key URLs
+            const apiKeyUrls = {
+                gemini: 'https://aistudio.google.com/apikey',
+                openrouter: 'https://openrouter.ai/keys',
+                claude: 'https://console.anthropic.com/settings/keys',
+                openai: 'https://platform.openai.com/api-keys',
+            };
+
+            const url = apiKeyUrls[selectedProvider] || 'https://aistudio.google.com/apikey';
+            await ipcRenderer.invoke('open-external', url);
         }
     }
 

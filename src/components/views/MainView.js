@@ -48,6 +48,34 @@ export class MainView extends LitElement {
             color: var(--placeholder-color);
         }
 
+        select {
+            background: var(--input-background);
+            color: var(--text-color);
+            border: 1px solid var(--button-border);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--focus-border-color);
+            box-shadow: 0 0 0 3px var(--focus-box-shadow);
+            background: var(--input-focus-background);
+        }
+
+        .provider-model-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .provider-model-group select {
+            flex: 1;
+        }
+
         /* Red blink animation for empty API key */
         input.api-key-error {
             animation: blink-red 1s ease-in-out;
@@ -149,6 +177,10 @@ export class MainView extends LitElement {
         isInitializing: { type: Boolean },
         onLayoutModeChange: { type: Function },
         showApiKeyError: { type: Boolean },
+        selectedProvider: { type: String },
+        selectedModel: { type: String },
+        availableProviders: { type: Array },
+        availableModels: { type: Array },
     };
 
     constructor() {
@@ -159,9 +191,13 @@ export class MainView extends LitElement {
         this.onLayoutModeChange = () => {};
         this.showApiKeyError = false;
         this.boundKeydownHandler = this.handleKeydown.bind(this);
+        this.selectedProvider = localStorage.getItem('selectedProvider') || 'gemini';
+        this.selectedModel = '';
+        this.availableProviders = [];
+        this.availableModels = [];
     }
 
-    connectedCallback() {
+    async connectedCallback() {
         super.connectedCallback();
         window.electron?.ipcRenderer?.on('session-initializing', (event, isInitializing) => {
             this.isInitializing = isInitializing;
@@ -169,6 +205,9 @@ export class MainView extends LitElement {
 
         // Add keyboard event listener for Ctrl+Enter (or Cmd+Enter on Mac)
         document.addEventListener('keydown', this.boundKeydownHandler);
+
+        // Load available providers
+        await this.loadProviders();
 
         // Load and apply layout mode on startup
         this.loadLayoutMode();
@@ -193,12 +232,78 @@ export class MainView extends LitElement {
         }
     }
 
+    async loadProviders() {
+        try {
+            const result = await window.electron.ipcRenderer.invoke('get-available-providers');
+            if (result.success) {
+                this.availableProviders = result.providers;
+                // Load models for selected provider
+                await this.loadModels(this.selectedProvider);
+            }
+        } catch (error) {
+            console.error('Error loading providers:', error);
+        }
+    }
+
+    async loadModels(providerName) {
+        try {
+            const result = await window.electron.ipcRenderer.invoke('get-available-models', providerName);
+            if (result.success) {
+                this.availableModels = result.models;
+                // Set default model if none selected
+                const storageKey = `${providerName}_model`;
+                const savedModel = localStorage.getItem(storageKey);
+                if (savedModel && this.availableModels.some(m => m.id === savedModel)) {
+                    this.selectedModel = savedModel;
+                } else if (this.availableModels.length > 0) {
+                    this.selectedModel = this.availableModels[0].id;
+                    localStorage.setItem(storageKey, this.selectedModel);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading models:', error);
+        }
+    }
+
     handleInput(e) {
-        localStorage.setItem('apiKey', e.target.value);
+        const storageKey = `${this.selectedProvider}_apiKey`;
+        localStorage.setItem(storageKey, e.target.value);
+        // Backward compatibility
+        if (this.selectedProvider === 'gemini') {
+            localStorage.setItem('apiKey', e.target.value);
+        }
         // Clear error state when user starts typing
         if (this.showApiKeyError) {
             this.showApiKeyError = false;
         }
+    }
+
+    async handleProviderChange(e) {
+        this.selectedProvider = e.target.value;
+        localStorage.setItem('selectedProvider', this.selectedProvider);
+        await this.loadModels(this.selectedProvider);
+        this.requestUpdate();
+    }
+
+    handleModelChange(e) {
+        this.selectedModel = e.target.value;
+        const storageKey = `${this.selectedProvider}_model`;
+        localStorage.setItem(storageKey, this.selectedModel);
+    }
+
+    getApiKey() {
+        const storageKey = `${this.selectedProvider}_apiKey`;
+        const apiKey = localStorage.getItem(storageKey);
+        // Backward compatibility for gemini
+        if (!apiKey && this.selectedProvider === 'gemini') {
+            return localStorage.getItem('apiKey') || '';
+        }
+        return apiKey || '';
+    }
+
+    getProviderDisplayName() {
+        const provider = this.availableProviders.find(p => p.id === this.selectedProvider);
+        return provider ? provider.name : this.selectedProvider;
     }
 
     handleStartClick() {
@@ -285,11 +390,29 @@ export class MainView extends LitElement {
         return html`
             <div class="welcome">Welcome</div>
 
+            <div class="provider-model-group">
+                <select @change=${this.handleProviderChange} .value=${this.selectedProvider}>
+                    ${this.availableProviders.map(provider => html`
+                        <option value="${provider.id}" ?selected=${provider.id === this.selectedProvider}>
+                            ${provider.name}
+                        </option>
+                    `)}
+                </select>
+
+                <select @change=${this.handleModelChange} .value=${this.selectedModel}>
+                    ${this.availableModels.map(model => html`
+                        <option value="${model.id}" ?selected=${model.id === this.selectedModel}>
+                            ${model.name}
+                        </option>
+                    `)}
+                </select>
+            </div>
+
             <div class="input-group">
                 <input
                     type="password"
-                    placeholder="Enter your Gemini API Key"
-                    .value=${localStorage.getItem('apiKey') || ''}
+                    placeholder="Enter your ${this.getProviderDisplayName()} API Key"
+                    .value=${this.getApiKey()}
                     @input=${this.handleInput}
                     class="${this.showApiKeyError ? 'api-key-error' : ''}"
                 />
